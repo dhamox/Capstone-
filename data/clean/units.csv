@@ -1,0 +1,16 @@
+Unit_ID,Facility_ID,Facility_Name,Unit_Type,Bed_Capacity,Occupied_Beds,Minimum_Staff,Maximum_Staff,Current_Staff
+U001,F01,St. Jude Memorial Hospital,ICU,32,16,11,23,14
+U002,F01,St. Jude Memorial Hospital,Emergency,39,23,11,20,9
+U003,F01,St. Jude Memorial Hospital,ICU,52,27,6,15,6
+U004,F01,St. Jude Memorial Hospital,Pediatrics,39,35,10,18,14
+U005,F01,St. Jude Memorial Hospital,Oncology,37,35,9,20,19
+U006,F02,Metro Health Medical Center,ICU,42,21,12,22,21
+U007,F02,Metro Health Medical Center,Emergency,46,31,7,18,13
+U008,F02,Metro Health Medical Center,Med-Surg,31,16,9,18,16
+U009,F02,Metro Health Medical Center,Pediatrics,47,42,8,16,15
+U010,F02,Metro Health Medical Center,Oncology,54,44,6,20,5
+U011,F03,City General Hospital,ICU,60,39,12,25,26
+U012,F03,City General Hospital,Emergency,37,20,6,17,12
+U013,F03,City General Hospital,Med-Surg,30,28,7,16,15
+U014,F03,City General Hospital,Pediatrics,42,35,11,24,12
+U015,F03,City General Hospital,Oncology,48,35,7,19,5

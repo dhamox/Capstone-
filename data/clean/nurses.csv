@@ -1,0 +1,268 @@
+Nurse_ID,Unit_ID,Facility_ID,Shift,Available_Hours,Nurse_Skill_Level,Specialty,Experience_Level,Availability_Status
+N0001,U001,F01,Evening,12.0,2,ICU,Mid,Available
+N0002,U001,F01,Night,12.0,4,ICU,Specialist,Available
+N0003,U001,F01,Day,8.0,3,ICU,Senior,Available
+N0004,U001,F01,Night,12.0,3,ICU,Senior,Available
+N0005,U001,F01,Day,0.0,3,ICU,Senior,Off Duty
+N0006,U001,F01,Day,12.0,4,ICU,Specialist,Available
+N0007,U001,F01,Evening,12.0,3,ICU,Senior,Off Duty
+N0008,U001,F01,Day,12.0,3,ICU,Senior,Available
+N0009,U001,F01,Day,8.0,4,ICU,Specialist,Available
+N0010,U001,F01,Evening,0.0,2,ICU,Mid,Off Duty
+N0011,U001,F01,Night,0.0,1,ICU,Junior,Off Duty
+N0012,U001,F01,Evening,8.0,3,ICU,Senior,Available
+N0013,U001,F01,Evening,12.0,1,ICU,Junior,Available
+N0014,U001,F01,Day,12.0,3,ICU,Senior,Available
+N0015,U001,F01,Day,12.0,4,ICU,Specialist,Available
+N0016,U001,F01,Evening,12.0,2,ICU,Mid,Available
+N0017,U001,F01,Day,12.0,2,ICU,Mid,Available
+N0018,U001,F01,Evening,8.0,1,ICU,Junior,Available
+N0019,U001,F01,Night,12.0,1,ICU,Junior,Available
+N0020,U001,F01,Day,8.0,2,ICU,Mid,Available
+N0021,U002,F01,Day,12.0,4,Emergency,Specialist,Available
+N0022,U002,F01,Evening,12.0,2,Emergency,Mid,Available
+N0023,U002,F01,Evening,0.0,3,Emergency,Senior,Off Duty
+N0024,U002,F01,Evening,12.0,2,Emergency,Mid,Available
+N0025,U002,F01,Night,12.0,3,Emergency,Senior,Available
+N0026,U002,F01,Evening,12.0,4,Emergency,Specialist,Available
+N0027,U002,F01,Day,12.0,2,Emergency,Mid,Available
+N0028,U002,F01,Day,12.0,2,ICU,Mid,Available
+N0029,U002,F01,Day,8.0,1,Emergency,Junior,Available
+N0030,U002,F01,Night,12.0,2,Emergency,Mid,Available
+N0031,U002,F01,Evening,0.0,2,Emergency,Mid,Off Duty
+N0032,U003,F01,Night,8.0,4,Med-Surg,Specialist,Available
+N0033,U003,F01,Night,0.0,4,Med-Surg,Specialist,Off Duty
+N0034,U003,F01,Evening,8.0,1,Med-Surg,Junior,Available
+N0035,U003,F01,Night,8.0,1,Med-Surg,Junior,Available
+N0036,U003,F01,Day,0.0,2,Med-Surg,Mid,Off Duty
+N0037,U003,F01,Night,0.0,2,Med-Surg,Mid,Off Duty
+N0038,U003,F01,Day,8.0,2,Med-Surg,Mid,Available
+N0039,U003,F01,Evening,8.0,1,Med-Surg,Junior,Available
+N0040,U003,F01,Day,0.0,1,Med-Surg,Junior,Off Duty
+N0041,U004,F01,Night,12.0,2,Pediatrics,Mid,Available
+N0042,U004,F01,Day,12.0,4,Pediatrics,Specialist,Available
+N0043,U004,F01,Night,0.0,4,Pediatrics,Specialist,Off Duty
+N0044,U004,F01,Day,12.0,2,Pediatrics,Mid,Available
+N0045,U004,F01,Evening,8.0,1,Pediatrics,Junior,Available
+N0046,U004,F01,Evening,12.0,4,Pediatrics,Specialist,Available
+N0047,U004,F01,Evening,8.0,1,General,Junior,Available
+N0048,U004,F01,Evening,0.0,1,Pediatrics,Junior,Off Duty
+N0049,U004,F01,Evening,8.0,1,Pediatrics,Junior,Available
+N0050,U004,F01,Night,12.0,1,Pediatrics,Junior,Available
+N0051,U004,F01,Day,12.0,3,Pediatrics,Senior,Available
+N0052,U004,F01,Night,12.0,2,Pediatrics,Mid,Available
+N0053,U004,F01,Night,8.0,4,Pediatrics,Specialist,Available
+N0054,U004,F01,Night,8.0,1,Pediatrics,Junior,Available
+N0055,U004,F01,Evening,12.0,1,Pediatrics,Junior,Available
+N0056,U004,F01,Night,12.0,2,Pediatrics,Mid,Available
+N0057,U004,F01,Night,12.0,3,Pediatrics,Senior,Available
+N0058,U004,F01,Evening,12.0,1,Pediatrics,Junior,Available
+N0059,U004,F01,Day,12.0,1,Pediatrics,Junior,Available
+N0060,U005,F01,Night,12.0,2,Oncology,Mid,Available
+N0061,U005,F01,Day,12.0,3,General,Senior,Available
+N0062,U005,F01,Night,8.0,4,Oncology,Specialist,Available
+N0063,U005,F01,Evening,12.0,1,Oncology,Junior,Available
+N0064,U005,F01,Day,12.0,1,Oncology,Junior,Available
+N0065,U005,F01,Day,0.0,3,Oncology,Senior,Off Duty
+N0066,U005,F01,Day,8.0,1,Emergency,Junior,Available
+N0067,U005,F01,Evening,0.0,3,Oncology,Senior,Off Duty
+N0068,U005,F01,Day,8.0,2,Oncology,Mid,Available
+N0069,U005,F01,Day,8.0,3,Oncology,Senior,Available
+N0070,U005,F01,Evening,0.0,3,Oncology,Senior,Off Duty
+N0071,U005,F01,Day,12.0,2,Oncology,Mid,Available
+N0072,U005,F01,Day,12.0,4,Oncology,Specialist,Available
+N0073,U005,F01,Evening,12.0,4,Oncology,Specialist,Available
+N0074,U005,F01,Day,8.0,3,Oncology,Senior,Available
+N0075,U005,F01,Day,12.0,4,Oncology,Specialist,Available
+N0076,U005,F01,Night,12.0,2,Oncology,Mid,Available
+N0077,U005,F01,Day,0.0,2,Oncology,Mid,Off Duty
+N0078,U005,F01,Night,12.0,3,Oncology,Senior,Available
+N0079,U005,F01,Evening,12.0,3,Oncology,Senior,Available
+N0080,U005,F01,Day,12.0,1,Oncology,Junior,Available
+N0081,U005,F01,Evening,12.0,2,Oncology,Mid,Available
+N0082,U005,F01,Day,12.0,1,Oncology,Junior,Available
+N0083,U005,F01,Night,8.0,3,Oncology,Senior,Available
+N0084,U005,F01,Evening,8.0,4,Oncology,Specialist,Available
+N0085,U006,F02,Evening,12.0,1,General,Junior,Available
+N0086,U006,F02,Night,12.0,3,Med-Surg,Senior,Available
+N0087,U006,F02,Evening,12.0,1,ICU,Junior,Available
+N0088,U006,F02,Night,12.0,4,ICU,Specialist,Available
+N0089,U006,F02,Day,0.0,2,ICU,Mid,Off Duty
+N0090,U006,F02,Evening,0.0,2,ICU,Mid,Off Duty
+N0091,U006,F02,Night,12.0,1,ICU,Junior,Off Duty
+N0092,U006,F02,Night,12.0,3,ICU,Senior,Available
+N0093,U006,F02,Evening,8.0,4,ICU,Specialist,Available
+N0094,U006,F02,Evening,12.0,3,ICU,Senior,Available
+N0095,U006,F02,Day,12.0,1,ICU,Junior,Available
+N0096,U006,F02,Day,0.0,2,Emergency,Mid,Off Duty
+N0097,U006,F02,Night,12.0,1,ICU,Junior,Available
+N0098,U006,F02,Night,12.0,4,ICU,Specialist,Available
+N0099,U006,F02,Day,12.0,1,ICU,Junior,Available
+N0100,U006,F02,Evening,8.0,2,ICU,Mid,Available
+N0101,U006,F02,Day,0.0,2,ICU,Mid,Off Duty
+N0102,U006,F02,Night,0.0,3,ICU,Senior,Off Duty
+N0103,U006,F02,Day,0.0,4,ICU,Specialist,Off Duty
+N0104,U006,F02,Night,12.0,4,ICU,Specialist,Available
+N0105,U006,F02,Evening,0.0,4,ICU,Specialist,Off Duty
+N0106,U006,F02,Evening,12.0,1,ICU,Junior,Available
+N0107,U006,F02,Night,8.0,3,ICU,Senior,Available
+N0108,U006,F02,Day,12.0,2,ICU,Mid,Available
+N0109,U006,F02,Day,12.0,2,ICU,Mid,Available
+N0110,U006,F02,Night,0.0,4,Pediatrics,Specialist,Off Duty
+N0111,U007,F02,Evening,8.0,1,Emergency,Junior,Available
+N0112,U007,F02,Night,0.0,3,Emergency,Senior,Off Duty
+N0113,U007,F02,Night,0.0,2,Emergency,Mid,Off Duty
+N0114,U007,F02,Day,0.0,4,Emergency,Specialist,Off Duty
+N0115,U007,F02,Night,8.0,2,Emergency,Mid,Available
+N0116,U007,F02,Evening,8.0,4,Emergency,Specialist,Available
+N0117,U007,F02,Evening,0.0,1,Emergency,Junior,Off Duty
+N0118,U007,F02,Day,12.0,2,Emergency,Mid,Available
+N0119,U007,F02,Night,0.0,2,Emergency,Mid,Off Duty
+N0120,U007,F02,Night,8.0,3,Emergency,Senior,Available
+N0121,U007,F02,Day,8.0,4,Emergency,Specialist,Available
+N0122,U007,F02,Day,8.0,3,Emergency,Senior,Available
+N0123,U007,F02,Day,8.0,1,Emergency,Junior,Available
+N0124,U007,F02,Day,12.0,2,ICU,Mid,Available
+N0125,U007,F02,Evening,12.0,4,Emergency,Specialist,Available
+N0126,U007,F02,Evening,8.0,2,Emergency,Mid,Available
+N0127,U007,F02,Night,12.0,2,ICU,Mid,Available
+N0128,U007,F02,Night,12.0,4,Emergency,Specialist,Available
+N0129,U007,F02,Evening,12.0,1,Emergency,Junior,Available
+N0130,U008,F02,Evening,8.0,3,Med-Surg,Senior,Available
+N0131,U008,F02,Night,12.0,1,Med-Surg,Junior,Available
+N0132,U008,F02,Evening,8.0,1,Med-Surg,Junior,Available
+N0133,U008,F02,Night,0.0,4,Med-Surg,Specialist,Off Duty
+N0134,U008,F02,Night,12.0,2,Med-Surg,Mid,Available
+N0135,U008,F02,Night,12.0,4,Med-Surg,Specialist,Available
+N0136,U008,F02,Day,8.0,3,Med-Surg,Senior,Available
+N0137,U008,F02,Night,0.0,3,Med-Surg,Senior,Off Duty
+N0138,U008,F02,Night,12.0,4,Med-Surg,Specialist,Available
+N0139,U008,F02,Day,12.0,4,Med-Surg,Specialist,Available
+N0140,U008,F02,Night,12.0,3,Med-Surg,Senior,Available
+N0141,U008,F02,Evening,8.0,1,Med-Surg,Junior,Available
+N0142,U008,F02,Evening,12.0,2,Med-Surg,Mid,Available
+N0143,U008,F02,Evening,0.0,4,Med-Surg,Specialist,Off Duty
+N0144,U008,F02,Day,0.0,1,Med-Surg,Junior,Off Duty
+N0145,U008,F02,Night,12.0,2,Med-Surg,Mid,Available
+N0146,U008,F02,Evening,0.0,4,Med-Surg,Specialist,Off Duty
+N0147,U008,F02,Night,12.0,3,Med-Surg,Senior,Available
+N0148,U009,F02,Day,12.0,3,Emergency,Senior,Available
+N0149,U009,F02,Evening,12.0,1,Pediatrics,Junior,Available
+N0150,U009,F02,Day,12.0,2,Pediatrics,Mid,Available
+N0151,U009,F02,Day,12.0,3,Pediatrics,Senior,Available
+N0152,U009,F02,Night,8.0,2,Pediatrics,Mid,Available
+N0153,U009,F02,Night,12.0,2,ICU,Mid,Available
+N0154,U009,F02,Evening,0.0,2,Pediatrics,Mid,Off Duty
+N0155,U009,F02,Day,0.0,1,Pediatrics,Junior,Off Duty
+N0156,U009,F02,Night,8.0,4,Pediatrics,Specialist,Available
+N0157,U009,F02,Night,0.0,3,ICU,Senior,Off Duty
+N0158,U009,F02,Day,8.0,4,Pediatrics,Specialist,Available
+N0159,U009,F02,Day,12.0,2,Pediatrics,Mid,Available
+N0160,U009,F02,Day,12.0,1,Pediatrics,Junior,Available
+N0161,U009,F02,Night,12.0,4,Pediatrics,Specialist,Available
+N0162,U009,F02,Night,8.0,4,Pediatrics,Specialist,Available
+N0163,U009,F02,Day,12.0,1,Pediatrics,Junior,Available
+N0164,U009,F02,Day,8.0,1,Pediatrics,Junior,Available
+N0165,U009,F02,Day,0.0,2,Pediatrics,Mid,Off Duty
+N0166,U009,F02,Day,12.0,3,Pediatrics,Senior,Available
+N0167,U010,F02,Evening,12.0,1,Oncology,Junior,Available
+N0168,U010,F02,Night,12.0,2,Emergency,Mid,Available
+N0169,U010,F02,Day,12.0,3,Emergency,Senior,Available
+N0170,U010,F02,Night,0.0,3,Med-Surg,Senior,Off Duty
+N0171,U010,F02,Evening,0.0,3,Oncology,Senior,Off Duty
+N0172,U010,F02,Evening,12.0,1,Pediatrics,Junior,Available
+N0173,U010,F02,Day,8.0,3,Oncology,Senior,Available
+N0174,U010,F02,Evening,0.0,3,Emergency,Senior,Off Duty
+N0175,U010,F02,Night,12.0,4,Oncology,Specialist,Off Duty
+N0176,U010,F02,Day,0.0,4,Oncology,Specialist,Off Duty
+N0177,U011,F03,Evening,12.0,3,Emergency,Senior,Available
+N0178,U011,F03,Evening,0.0,4,General,Specialist,Off Duty
+N0179,U011,F03,Night,12.0,1,Med-Surg,Junior,Available
+N0180,U011,F03,Night,8.0,1,ICU,Junior,Available
+N0181,U011,F03,Night,12.0,4,Oncology,Specialist,Available
+N0182,U011,F03,Evening,8.0,4,ICU,Specialist,Available
+N0183,U011,F03,Night,12.0,2,ICU,Mid,Available
+N0184,U011,F03,Evening,8.0,4,General,Specialist,Available
+N0185,U011,F03,Evening,8.0,2,ICU,Mid,Available
+N0186,U011,F03,Day,8.0,4,ICU,Specialist,Available
+N0187,U011,F03,Day,12.0,4,ICU,Specialist,Available
+N0188,U011,F03,Evening,12.0,4,ICU,Specialist,Available
+N0189,U011,F03,Night,12.0,4,ICU,Specialist,Available
+N0190,U011,F03,Evening,12.0,4,Emergency,Specialist,Available
+N0191,U011,F03,Night,0.0,1,ICU,Junior,Off Duty
+N0192,U011,F03,Evening,8.0,3,ICU,Senior,Available
+N0193,U011,F03,Evening,0.0,3,ICU,Senior,Off Duty
+N0194,U011,F03,Night,12.0,2,ICU,Mid,Available
+N0195,U011,F03,Evening,0.0,3,ICU,Senior,Off Duty
+N0196,U011,F03,Night,12.0,4,ICU,Specialist,Available
+N0197,U011,F03,Day,0.0,4,ICU,Specialist,Off Duty
+N0198,U011,F03,Night,12.0,1,ICU,Junior,Off Duty
+N0199,U011,F03,Evening,12.0,4,ICU,Specialist,Available
+N0200,U011,F03,Day,12.0,4,Oncology,Specialist,Available
+N0201,U011,F03,Night,8.0,1,Pediatrics,Junior,Available
+N0202,U011,F03,Night,12.0,2,ICU,Mid,Available
+N0203,U011,F03,Night,12.0,1,ICU,Junior,Available
+N0204,U011,F03,Evening,8.0,3,ICU,Senior,Available
+N0205,U011,F03,Evening,0.0,3,ICU,Senior,Off Duty
+N0206,U011,F03,Evening,0.0,3,ICU,Senior,Off Duty
+N0207,U012,F03,Evening,12.0,1,Med-Surg,Junior,Available
+N0208,U012,F03,Night,8.0,1,Emergency,Junior,Available
+N0209,U012,F03,Day,12.0,4,Emergency,Specialist,Available
+N0210,U012,F03,Night,12.0,1,Emergency,Junior,Available
+N0211,U012,F03,Night,12.0,3,Emergency,Senior,Available
+N0212,U012,F03,Evening,12.0,4,Emergency,Specialist,Available
+N0213,U012,F03,Day,12.0,2,Pediatrics,Mid,Available
+N0214,U012,F03,Evening,12.0,4,Pediatrics,Specialist,Available
+N0215,U012,F03,Night,0.0,4,Emergency,Specialist,Off Duty
+N0216,U012,F03,Evening,8.0,3,Emergency,Senior,Available
+N0217,U012,F03,Night,12.0,4,Emergency,Specialist,Available
+N0218,U012,F03,Evening,12.0,4,Emergency,Specialist,Available
+N0219,U012,F03,Night,8.0,2,Emergency,Mid,Available
+N0220,U012,F03,Night,12.0,2,Emergency,Mid,Available
+N0221,U012,F03,Day,0.0,3,Emergency,Senior,Off Duty
+N0222,U012,F03,Day,8.0,3,Emergency,Senior,Available
+N0223,U012,F03,Night,12.0,4,General,Specialist,Available
+N0224,U012,F03,Day,12.0,3,Emergency,Senior,Available
+N0225,U013,F03,Evening,12.0,1,Med-Surg,Junior,Available
+N0226,U013,F03,Day,12.0,4,Med-Surg,Specialist,Available
+N0227,U013,F03,Night,0.0,1,Med-Surg,Junior,Off Duty
+N0228,U013,F03,Day,12.0,2,Oncology,Mid,Available
+N0229,U013,F03,Day,0.0,3,Med-Surg,Senior,Off Duty
+N0230,U013,F03,Evening,8.0,3,Med-Surg,Senior,Available
+N0231,U013,F03,Day,0.0,4,Emergency,Specialist,Off Duty
+N0232,U013,F03,Day,8.0,3,Med-Surg,Senior,Available
+N0233,U013,F03,Evening,12.0,3,Med-Surg,Senior,Available
+N0234,U013,F03,Evening,8.0,4,Med-Surg,Specialist,Available
+N0235,U013,F03,Night,12.0,2,Oncology,Mid,Available
+N0236,U013,F03,Evening,12.0,2,Pediatrics,Mid,Available
+N0237,U013,F03,Day,12.0,4,General,Specialist,Available
+N0238,U013,F03,Day,12.0,4,Oncology,Specialist,Available
+N0239,U013,F03,Night,0.0,4,Med-Surg,Specialist,Off Duty
+N0240,U013,F03,Night,0.0,2,Med-Surg,Mid,Off Duty
+N0241,U013,F03,Night,12.0,4,Med-Surg,Specialist,Available
+N0242,U013,F03,Night,12.0,4,Med-Surg,Specialist,Available
+N0243,U014,F03,Evening,12.0,3,Pediatrics,Senior,Available
+N0244,U014,F03,Night,8.0,1,Pediatrics,Junior,Available
+N0245,U014,F03,Day,8.0,4,Pediatrics,Specialist,Available
+N0246,U014,F03,Night,12.0,1,Pediatrics,Junior,Available
+N0247,U014,F03,Day,12.0,2,Pediatrics,Mid,Available
+N0248,U014,F03,Day,12.0,2,Pediatrics,Mid,Available
+N0249,U014,F03,Night,12.0,1,Pediatrics,Junior,Available
+N0250,U014,F03,Evening,12.0,2,Pediatrics,Mid,Available
+N0251,U014,F03,Evening,12.0,1,Pediatrics,Junior,Available
+N0252,U014,F03,Night,12.0,1,Pediatrics,Junior,Available
+N0253,U014,F03,Day,8.0,3,Pediatrics,Senior,Available
+N0254,U014,F03,Evening,8.0,2,Pediatrics,Mid,Available
+N0255,U014,F03,Night,12.0,1,Pediatrics,Junior,Available
+N0256,U014,F03,Night,12.0,1,Pediatrics,Junior,Available
+N0257,U015,F03,Night,8.0,3,Oncology,Senior,Available
+N0258,U015,F03,Night,0.0,1,Oncology,Junior,Off Duty
+N0259,U015,F03,Night,0.0,1,Oncology,Junior,Off Duty
+N0260,U015,F03,Day,12.0,1,Oncology,Junior,Available
+N0261,U015,F03,Day,12.0,1,General,Junior,Available
+N0262,U015,F03,Evening,0.0,4,Oncology,Specialist,Off Duty
+N0263,U015,F03,Day,8.0,4,Oncology,Specialist,Available
+N0264,U015,F03,Night,12.0,2,Oncology,Mid,Available
+N0265,U015,F03,Night,0.0,4,Oncology,Specialist,Off Duty
+N0266,U015,F03,Evening,12.0,4,Pediatrics,Specialist,Available
+N0267,U015,F03,Night,0.0,3,Oncology,Senior,Off Duty
