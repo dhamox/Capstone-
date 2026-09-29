@@ -6,3 +6,5 @@ __pycache__/
 .idea/
 *.log
 data/raw/
+data/raw_temp/
+
