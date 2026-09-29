@@ -57,6 +57,35 @@ def calculate_unit_workload(df_patients, acuity_weights=None):
 
     return unit_summary
 
+def calculate_workload_imbalance_metrics(staffing_df):
+    """
+    Computes explainable workload imbalance metrics across all hospital units:
+    1. Maximum Workload Per Nurse
+    2. Minimum Workload Per Nurse
+    3. Workload Imbalance Max-Min Gap (Max - Min)
+    4. Workload Standard Deviation (Std)
+    5. Workload Mean (Mean)
+    6. Coefficient of Variation % (CV = Std / Mean * 100)
+    """
+    wpn = staffing_df["Workload_Per_Nurse"]
+    
+    max_wpn = float(wpn.max())
+    min_wpn = float(wpn.min())
+    max_min_gap = round(max_wpn - min_wpn, 2)
+    std_wpn = float(wpn.std())
+    mean_wpn = float(wpn.mean())
+    cv_pct = round((std_wpn / mean_wpn * 100), 2) if mean_wpn > 0 else 0.0
+
+    return {
+        "Max_Workload_Per_Nurse": round(max_wpn, 2),
+        "Min_Workload_Per_Nurse": round(min_wpn, 2),
+        "Workload_Imbalance_Max_Min_Gap": max_min_gap,
+        "Workload_Imbalance_Std": round(std_wpn, 2),
+        "Workload_Mean": round(mean_wpn, 2),
+        "Coefficient_of_Variation_Pct": cv_pct
+    }
+
+
 
 if __name__ == "__main__":
     from src.data_cleaning import run_cleaning_pipeline

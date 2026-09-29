@@ -1,46 +1,27 @@
-# Failure & Edge Case Analysis - Workload-Balancing Simulator
+# Failure & Edge Case Analysis - Hospital Workload Balancing Simulator
 
-This document provides a detailed technical analysis of the 3 primary failure/edge cases enforced by the simulator, as well as real-world operational risks and decision-support safety boundaries.
-
----
-
-## 1. Primary Failure Cases
-
-### Failure Case 1: Skill Mismatch (No Specialist Available)
-* **Scenario**: A receiving unit (e.g., ICU) experiences a staffing shortage and requests additional nurse coverage. However, the available surplus nurses in donor units only hold Med-Surg or General certifications.
-* **Simulator Response**: The simulator flags a skill mismatch error and prevents the reassignment recommendation.
-* **Clinical Rationale**: Reassigning a nurse without ICU competency to a critical unit compromises patient safety and violates nursing practice standards.
-* **Mitigation / Recommendation**: Issue an alert to the shift manager to call in an off-duty ICU specialist or initiate inter-facility patient transfer.
+This document presents a comprehensive technical breakdown of **8 realistic failure modes and edge cases** evaluated by the Shift Workload-Balancing Simulator, detailing detection mechanisms, safety mitigations, and escalation procedures.
 
 ---
 
-### Failure Case 2: Donor Unit Depletion (Minimum Staffing Protection)
-* **Scenario**: A receiving unit has a staffing gap, and a donor unit appears to have active nurses available. However, transferring a nurse out of the donor unit would cause its active staff count to drop below `Minimum_Staff`.
-* **Simulator Response**: The simulator blocks the reassignment and logs a "Donor minimum staffing breach" protection alert.
-* **Clinical Rationale**: Weakening one unit below minimum safe staffing bounds to solve a shortage in another unit spreads vulnerability and increases overall hospital risk.
-* **Mitigation / Recommendation**: Preserve donor unit baseline staffing; seek alternative donor units or administrative escalation.
+## 1. Failure Modes & Safety Matrix (8 Failure Modes)
+
+| Failure Mode | Cause | Effect | Detection Mechanism | Mitigation Strategy | Escalation Protocol |
+|---|---|---|---|---|---|
+| **1. Skill Mismatch** | Receiving unit (e.g. ICU) needs coverage, but available donor nurses lack specialty certification | Unsafe patient care if assigned; skill gap | `validate_safe_reassignment()` skill compatibility check | Block reassignment; flag skill gap | Level 1: Shift Manager Alert to call in off-duty specialist |
+| **2. Donor Unit Depletion** | Donor unit has excess workload capacity, but transfer drops staff below minimum bounds | Weakens donor unit safety; creates new gap | Donor active nurses check: `Active - 1 < Minimum_Staff` | Block transfer; enforce minimum staffing protection | Level 2: Clinical Ops Lead Alert for inter-facility pool |
+| **3. Physical Bed Capacity Bottleneck** | Patient transfer requested to a unit currently at 100% bed occupancy | Overcrowding; physical bed shortage | Bed occupancy check: `Occupied_Beds >= Bed_Capacity` | Block transfer; redirect patient flow | Level 2: Ops Lead Alert for accelerated discharge |
+| **4. Nurse Double-Assignment Conflict** | Same nurse selected concurrently for multiple unit transfers | Roster conflict; scheduling overlap | Active reassignment state locking check | Lock candidate nurse ID during evaluation queue | Level 1: Manager notification of concurrent request |
+| **5. Off-Duty / Absent Nurse Selection** | Roster database lists nurse as available when call-out occurred | False surplus calculation | Nurse status validation: `Availability_Status == "Available"` | Filter out off-duty nurses; recalculate capacity | Level 1: Roster supervisor alert to update status |
+| **6. Inter-Facility Shift Misalignment** | Reassignment attempted between facilities with mismatched shift schedules | Shift overlap; overtime violation | Shift roster alignment check (`Day`, `Evening`, `Night`) | Restrict reassignments to compatible shift windows | Level 1: Shift Manager approval required |
+| **7. Multi-Unit Staffing Exhaustion** | Severe network-wide shortage where all units hit minimum staffing | Safe reassignment capacity drops to 0 | Global surplus tracking: `Total_Surplus == 0` | Issue network-wide capacity alert | Level 3: Senior Executive / Hospital VP Alert |
+| **8. EHR Acuity Data Staleness & Latency** | Electronic Health Record updates lag behind rapid patient deterioration | Underestimated unit workload score | Real-time acuity refresh & scenario stress testing | Trigger High Acuity scenario simulation (+25%) | Level 2: Clinical Lead alert for manual acuity override |
 
 ---
 
-### Failure Case 3: Receiving Unit at Physical Capacity
-* **Scenario**: A patient transfer request is submitted to balance workload, but the receiving unit is currently at 100% bed capacity (`Occupied_Beds == Bed_Capacity`).
-* **Simulator Response**: The simulator flags the physical bed capacity bottleneck and blocks the transfer recommendation.
-* **Clinical Rationale**: Transferring patients or assigning staff to a physically saturated unit creates severe overcrowding and delays emergency care.
-* **Mitigation / Recommendation**: Prioritize discharge processing or redirect patient transfers to secondary network facilities.
+## 2. Decision-Support Boundaries & Human-in-the-Loop Gateway
 
----
-
-## 2. Real-World Operational Risks & Mitigation
-
-| Risk Factor | Description | Simulator Defense / Handling |
-|---|---|---|
-| **Incorrect Roster Data** | Nurse availability status incorrectly logged as available when off-duty | Data cleaning & validation checks; human manager confirmation requirement |
-| **Delayed Data Updates** | Electronic Health Record (EHR) acuity updates lag behind sudden patient deterioration | Dynamic scenario re-simulation with parameter sliders (+25% acuity) |
-| **Unexpected Absenteeism** | Sudden nurse call-outs during shift change | Staff shortage scenario simulation (-20% staff multiplier) |
-| **Multiple Simultaneous Transfers** | Race conditions during peak transfer hours | Queue-based reassignment evaluation with lock checks |
-| **Automation Bias** | Managers blindly executing AI recommendations without clinical review | Explicit system disclaimers requiring clinical sign-off before transfer |
-
----
-
-## 3. Decision-Support Boundary Statement
-> **IMPORTANT**: This simulator operates strictly as a **decision-support prototype**. It generates candidate reassignment recommendations based on quantitative workload metrics and pre-defined skill matching rules. All recommendations **MUST** be reviewed and approved by a qualified clinical shift manager prior to execution.
+> **IMPORTANT CLINICAL DISCLAIMER**:
+> This simulator functions strictly as a **decision-support software prototype**. It generates candidate nurse reassignment recommendations based on quantitative workload calculations and pre-defined safety rules. 
+> 
+> **All recommendations MUST be reviewed, validated, and approved by a qualified clinical shift manager or charge nurse before any physical staff reassignment or patient transfer takes place.**

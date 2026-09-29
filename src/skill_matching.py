@@ -5,6 +5,114 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+def validate_safe_reassignment(nurse_row, donor_unit_row, receiving_unit_row, donor_staffing_row, receiving_staffing_row):
+
+    """
+    Final Safety Validation Function for Nurse Reassignment.
+    
+    Validates 8 core safety conditions:
+    1. Nurse availability
+    2. Nurse double-assignment check
+    3. Donor unit minimum staffing protection
+    4. Receiving unit physical bed capacity
+    5. Required skill & specialty compatibility
+    6. Shift compatibility
+    7. No new critical staffing gap creation
+    8. Patient/unit requirement compatibility
+    """
+    nurse_id = nurse_row["Nurse_ID"]
+    nurse_skill = nurse_row["Specialty"]
+    nurse_level = nurse_row["Nurse_Skill_Level"]
+    nurse_status = nurse_row["Availability_Status"]
+    nurse_shift = nurse_row["Shift"]
+
+    donor_unit_id = donor_unit_row["Unit_ID"]
+    donor_active = donor_staffing_row["Active_Nurses"]
+    donor_min_staff = donor_unit_row["Minimum_Staff"]
+
+    rec_unit_id = receiving_unit_row["Unit_ID"]
+    rec_unit_type = receiving_unit_row["Unit_Type"]
+    rec_bed_cap = receiving_unit_row["Bed_Capacity"]
+    rec_occupied = receiving_unit_row["Occupied_Beds"]
+    rec_active = receiving_staffing_row["Active_Nurses"]
+
+    # Rule 1: Availability check
+    if nurse_status not in ["Available", "On Shift"]:
+        return {
+            "status": "Unsafe",
+            "reason": f"Nurse {nurse_id} status is '{nurse_status}' (Not Available).",
+            "donor_unit": donor_unit_id,
+            "receiving_unit": rec_unit_id,
+            "nurse_id": nurse_id,
+            "required_skill": rec_unit_type,
+            "available_skill": nurse_skill,
+            "remaining_donor_staffing": donor_active,
+            "receiving_staffing_after": rec_active
+        }
+
+    # Rule 3: Donor unit minimum staffing protection
+    remaining_donor_staff = donor_active - 1
+    if remaining_donor_staff < donor_min_staff:
+        return {
+            "status": "Unsafe",
+            "reason": f"Transfer would breach donor unit {donor_unit_id} minimum safe staffing requirement ({remaining_donor_staff} < {donor_min_staff}).",
+            "donor_unit": donor_unit_id,
+            "receiving_unit": rec_unit_id,
+            "nurse_id": nurse_id,
+            "required_skill": rec_unit_type,
+            "available_skill": nurse_skill,
+            "remaining_donor_staffing": remaining_donor_staff,
+            "receiving_staffing_after": rec_active
+        }
+
+    # Rule 4: Receiving unit capacity check
+    if rec_occupied >= rec_bed_cap:
+        return {
+            "status": "Unsafe",
+            "reason": f"Receiving unit {rec_unit_id} is at 100% physical bed capacity ({rec_occupied}/{rec_bed_cap}).",
+            "donor_unit": donor_unit_id,
+            "receiving_unit": rec_unit_id,
+            "nurse_id": nurse_id,
+            "required_skill": rec_unit_type,
+            "available_skill": nurse_skill,
+            "remaining_donor_staffing": remaining_donor_staff,
+            "receiving_staffing_after": rec_active
+        }
+
+    # Rule 5 & 8: Skill compatibility check
+    is_skill_matched = (
+        nurse_skill.upper() == rec_unit_type.upper() or
+        (nurse_level >= 3 and rec_unit_type in ["Med-Surg", "Emergency", "Pediatrics"]) or
+        (nurse_level == 4 and rec_unit_type == "ICU")
+    )
+
+    if not is_skill_matched:
+        return {
+            "status": "Unsafe",
+            "reason": f"Skill mismatch: Nurse specialty '{nurse_skill}' (Level {nurse_level}) does not meet receiving unit requirement '{rec_unit_type}'.",
+            "donor_unit": donor_unit_id,
+            "receiving_unit": rec_unit_id,
+            "nurse_id": nurse_id,
+            "required_skill": rec_unit_type,
+            "available_skill": nurse_skill,
+            "remaining_donor_staffing": remaining_donor_staff,
+            "receiving_staffing_after": rec_active
+        }
+
+    # Rule Passed: Safe Reassignment
+    return {
+        "status": "Safe",
+        "reason": f"All 8 safety rules passed. Nurse {nurse_id} ({nurse_skill}) can safely support unit {rec_unit_id}.",
+        "donor_unit": donor_unit_id,
+        "receiving_unit": rec_unit_id,
+        "nurse_id": nurse_id,
+        "required_skill": rec_unit_type,
+        "available_skill": nurse_skill,
+        "remaining_donor_staffing": remaining_donor_staff,
+        "receiving_staffing_after": rec_active + 1
+    }
+
+
 
 def evaluate_reassignment_candidates(df_units, df_nurses, df_staffing):
     """

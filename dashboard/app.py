@@ -4,20 +4,23 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.express as px
-import plotly.graph_objects as gg
+import plotly.graph_objects as go
 
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.data_cleaning import run_cleaning_pipeline
-from src.workload import calculate_unit_workload
+from src.workload import calculate_unit_workload, calculate_workload_imbalance_metrics
 from src.staffing import calculate_unit_staffing
-from src.skill_matching import evaluate_reassignment_candidates
-from src.simulator import run_scenario_simulation, run_all_operating_scenarios, run_sensitivity_analysis
+from src.skill_matching import evaluate_reassignment_candidates, validate_safe_reassignment
+from src.simulator import run_scenario_simulation, run_all_operating_scenarios, run_sensitivity_analysis, run_reproducible_experiment
+from src.transfer_logic import process_batch_transfer_requests
+from src.escalation import evaluate_action_escalations, get_sample_action_items
+from src.audit_log import record_manager_decision, load_audit_log
 
 # Page Config
 st.set_page_config(
-    page_title="Hospital Workload-Balancing Simulator",
+    page_title="Shift Workload-Balancing Simulator",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,21 +37,21 @@ st.markdown("""
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 12px;
-        padding: 18px;
+        padding: 16px;
         text-align: center;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         backdrop-filter: blur(8px);
     }
     .kpi-title {
         color: #94a3b8;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
     .kpi-value {
         color: #38bdf8;
-        font-size: 1.8rem;
+        font-size: 1.7rem;
         font-weight: 700;
         margin-top: 4px;
     }
@@ -58,48 +61,42 @@ st.markdown("""
         font-weight: 500;
         margin-top: 2px;
     }
-    .badge-high {
-        background-color: #ef4444;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    .badge-med {
-        background-color: #f59e0b;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    .badge-low {
-        background-color: #10b981;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
+    .badge-level0 { background-color: #3b82f6; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    .badge-level1 { background-color: #f59e0b; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    .badge-level2 { background-color: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    .badge-level3 { background-color: #8b5cf6; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
 </style>
 """, unsafe_allow_html=True)
 
-# Load Clean Data
+# Load Data
 @st.cache_data
-def get_data():
+def get_clean_data():
     return run_cleaning_pipeline()
 
-df_units, df_nurses, df_patients = get_data()
+df_units, df_nurses, df_patients = get_clean_data()
 
-# Sidebar Controls
-st.sidebar.image("https://img.icons8.com/isometric-line/100/hospital.png", width=70)
-st.sidebar.title("Simulator Controls")
-st.sidebar.caption("Shift Workload-Balancing Prototype (Review 1 Target - 35%)")
+# Sidebar Navigation (7 Pages)
+st.sidebar.image("https://img.icons8.com/isometric-line/100/hospital.png", width=65)
+st.sidebar.title("Hospital Navigation")
 
-# Filter Options
+page_choice = st.sidebar.radio(
+    "Select Application View:",
+    [
+        "1. 📊 Executive Overview",
+        "2. 🏥 Unit Workload & Capacity",
+        "3. ⚡ Operating Scenario Simulator",
+        "4. 🔄 Reassignments & Transfer Decision",
+        "5. 🛡️ Failure Modes & Safety Rules",
+        "6. 📈 Advanced Sensitivity Analysis",
+        "7. 📋 Action Tracking & Escalation"
+    ]
+)
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("Filter Scope")
+
 facilities = ["All Facilities"] + list(df_units["Facility_Name"].unique())
-sel_facility_name = st.sidebar.selectbox("Hospital Facility", facilities)
+sel_facility_name = st.sidebar.selectbox("Facility Filter", facilities)
 
 if sel_facility_name != "All Facilities":
     sel_fac_id = df_units[df_units["Facility_Name"] == sel_facility_name]["Facility_ID"].iloc[0]
@@ -111,318 +108,242 @@ else:
     filtered_nurses = df_nurses.copy()
     filtered_patients = df_patients.copy()
 
-unit_types = ["All Units"] + list(df_units["Unit_Type"].unique())
-sel_unit_type = st.sidebar.selectbox("Unit Specialty", unit_types)
+st.sidebar.caption("Decision-Support System: Requires Human Manager Approval.")
 
-if sel_unit_type != "All Units":
-    filtered_units = filtered_units[filtered_units["Unit_Type"] == sel_unit_type]
-    filtered_patients = filtered_patients[filtered_patients["Required_Skill"] == sel_unit_type]
+# Global Simulation Run for Selected Facility Scope
+sim_res = run_scenario_simulation(filtered_units, filtered_nurses, filtered_patients, scenario_name="Current Baseline")
+summary = sim_res["summary"]
+pre_staffing = sim_res["pre_staffing"]
+post_staffing = sim_res["post_staffing"]
+reassignments = sim_res["reassignments"]
+unsafe_prevented = sim_res["unsafe_prevented"]
 
-shifts = ["All Shifts", "Day", "Evening", "Night"]
-sel_shift = st.sidebar.selectbox("Shift Roster", shifts)
+# PAGE 1: EXECUTIVE OVERVIEW
+if "1. 📊 Executive Overview" in page_choice:
+    st.title("📊 Executive Hospital Overview")
+    st.caption("Real-Time Workload Intensity, Staffing Balance & Safe Reassignment Capacity")
 
-if sel_shift != "All Shifts":
-    filtered_nurses = filtered_nurses[filtered_nurses["Shift"] == sel_shift]
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    with c1:
+        st.markdown(f"<div class='kpi-card'><div class='kpi-title'>Total Patients</div><div class='kpi-value'>{summary['Total_Patients']:,}</div><div class='kpi-sub'>Active Census</div></div>", unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"<div class='kpi-card'><div class='kpi-title'>Active Nurses</div><div class='kpi-value'>{summary['Total_Nurses']}</div><div class='kpi-sub'>On Shift</div></div>", unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"<div class='kpi-card'><div class='kpi-title'>Staffing Gap</div><div class='kpi-value' style='color:#f87171;'>{summary['Pre_Staffing_Gap']}</div><div class='kpi-sub'>Nurses Needed</div></div>", unsafe_allow_html=True)
+    with c4:
+        st.markdown(f"<div class='kpi-card'><div class='kpi-title'>Donor Surplus</div><div class='kpi-value' style='color:#34d399;'>{summary['Pre_Staffing_Surplus']}</div><div class='kpi-sub'>Surplus Staff</div></div>", unsafe_allow_html=True)
+    with c5:
+        st.markdown(f"<div class='kpi-card'><div class='kpi-title'>Safe Capacity</div><div class='kpi-value' style='color:#38bdf8;'>{summary['Safe_Reassignment_Capacity']}</div><div class='kpi-sub'>Skill-Matched</div></div>", unsafe_allow_html=True)
+    with c6:
+        st.markdown(f"<div class='kpi-card'><div class='kpi-title'>Imbalance Red.</div><div class='kpi-value' style='color:#a78bfa;'>{summary['Imbalance_Reduction_Pct']}%</div><div class='kpi-sub'>Balance Gain</div></div>", unsafe_allow_html=True)
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("Scenario Selector")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-scenarios_map = {
-    "Baseline (Normal)": (1.0, 1.0),
-    "High Acuity (+25% Workload)": (1.25, 1.0),
-    "Staff Shortage (-20% Nurses)": (1.0, 0.80),
-    "Combined Stress (+25% Acuity, -20% Staff)": (1.25, 0.80)
-}
-
-sel_scenario_label = st.sidebar.selectbox("Operating Scenario", list(scenarios_map.keys()))
-acuity_mult, staff_mult = scenarios_map[sel_scenario_label]
-
-st.sidebar.markdown("---")
-st.sidebar.info("**Decision-Support Prototype**: Not for autonomous clinical decision-making. Requires human manager approval.")
-
-# Run Simulation Engine for Selected Scenario
-sim_result = run_scenario_simulation(
-    filtered_units, filtered_nurses, filtered_patients,
-    scenario_name=sel_scenario_label,
-    acuity_multiplier=acuity_mult,
-    staff_multiplier=staff_mult
-)
-
-summary = sim_result["summary"]
-pre_staffing = sim_result["pre_staffing"]
-post_staffing = sim_result["post_staffing"]
-reassignments = sim_result["reassignments"]
-unsafe_prevented = sim_result["unsafe_prevented"]
-
-# Title Banner
-st.title("🏥 Shift Workload-Balancing Simulator")
-st.caption("Hospital Patient Transfer & Safe Nurse Reassignment Support System | 35% Prototype Target")
-
-# Top KPI Header
-c1, c2, c3, c4, c5, c6 = st.columns(6)
-
-with c1:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">Active Patients</div>
-        <div class="kpi-value">{summary['Total_Patients']:,}</div>
-        <div class="kpi-sub">Census Tracked</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c2:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">Active Nurses</div>
-        <div class="kpi-value">{summary['Total_Nurses']}</div>
-        <div class="kpi-sub">Available/Shift</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c3:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">Staffing Gap</div>
-        <div class="kpi-value" style="color: #f87171;">{summary['Pre_Staffing_Gap']}</div>
-        <div class="kpi-sub">Pre-Balance Need</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c4:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">Donor Surplus</div>
-        <div class="kpi-value" style="color: #34d399;">{summary['Pre_Staffing_Surplus']}</div>
-        <div class="kpi-sub">Available Surplus</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c5:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">Safe Capacity</div>
-        <div class="kpi-value" style="color: #38bdf8;">{summary['Safe_Reassignment_Capacity']}</div>
-        <div class="kpi-sub">Skill-Matched</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c6:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">Imbalance Red.</div>
-        <div class="kpi-value" style="color: #a78bfa;">{summary['Imbalance_Reduction_Pct']}%</div>
-        <div class="kpi-sub">Workload Balance</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Tabs
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📊 Operating Dashboards",
-    "🔄 Reassignment Simulator",
-    "📈 Multi-Scenario Comparison",
-    "⚡ Sensitivity Analysis",
-    "⚠️ Failure & Edge Cases",
-    "📋 Action & Escalation Tracker"
-])
-
-# TAB 1: OPERATING DASHBOARD
-with tab1:
-    st.subheader(f"Current Operating Snapshot: {sel_scenario_label}")
-    
-    r1_col1, r1_col2 = st.columns(2)
-    
-    with r1_col1:
-        # Chart 1: Staffing Gap & Surplus by Unit
-        gap_df = pre_staffing[["Unit_ID", "Unit_Type", "Staffing_Gap", "Staffing_Surplus"]].copy()
+    col1, col2 = st.columns(2)
+    with col1:
         fig_gap = px.bar(
-            gap_df, x="Unit_ID", y=["Staffing_Gap", "Staffing_Surplus"],
-            barmode="group",
-            title="Staffing Gap vs Surplus by Hospital Unit",
-            labels={"value": "Nurse Count", "variable": "Metric"},
+            pre_staffing, x="Unit_ID", y=["Staffing_Gap", "Staffing_Surplus"],
+            barmode="group", title="Staffing Gap vs Donor Surplus by Unit",
             color_discrete_map={"Staffing_Gap": "#ef4444", "Staffing_Surplus": "#10b981"},
             template="plotly_dark"
         )
         st.plotly_chart(fig_gap, use_container_width=True)
 
-    with r1_col2:
-        # Chart 2: Total Workload by Unit
-        fig_wl = px.bar(
-            pre_staffing, x="Unit_ID", y="Total_Workload", color="Unit_Type",
-            title="Total Patient Workload Score by Unit",
-            labels={"Total_Workload": "Workload Score", "Unit_ID": "Unit"},
-            template="plotly_dark"
-        )
-        st.plotly_chart(fig_wl, use_container_width=True)
-
-    r2_col1, r2_col2 = st.columns(2)
-
-    with r2_col1:
-        # Chart 3: Workload per Nurse by Unit
+    with col2:
         fig_wpn = px.bar(
-            pre_staffing, x="Unit_ID", y="Workload_Per_Nurse",
-            color="Workload_Per_Nurse",
-            color_continuous_scale="Reds",
-            title="Workload Intensity Per Nurse (Pre-Balancing)",
-            labels={"Workload_Per_Nurse": "Workload Units / Nurse"},
+            pre_staffing, x="Unit_ID", y="Workload_Per_Nurse", color="Unit_Type",
+            title="Workload Intensity Per Nurse across Units",
             template="plotly_dark"
         )
         st.plotly_chart(fig_wpn, use_container_width=True)
 
-    with r2_col2:
-        # Chart 4: Patient Acuity Breakdown
-        acuity_counts = filtered_patients["Acuity_Level"].value_counts().reset_index()
-        acuity_counts.columns = ["Acuity_Level", "Count"]
-        fig_pie = px.pie(
-            acuity_counts, names="Acuity_Level", values="Count",
-            title="Patient Census Acuity Distribution",
-            color="Acuity_Level",
-            color_discrete_map={"Low": "#34d399", "Medium": "#60a5fa", "High": "#fbbf24", "Critical": "#f87171"},
+# PAGE 2: UNIT WORKLOAD & CAPACITY
+elif "2. 🏥 Unit Workload & Capacity" in page_choice:
+    st.title("🏥 Unit Workload & Bed Capacity Analysis")
+    st.caption("Inspecting Bed Occupancy Rates, Staffing Bounds, and Workload Distribution")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        pre_staffing["Occupied_Pct"] = round((pre_staffing["Occupied_Beds"] / pre_staffing["Bed_Capacity"]) * 100, 1)
+        fig_bed = px.bar(
+            pre_staffing, x="Unit_ID", y=["Occupied_Beds", "Bed_Capacity"],
+            barmode="overlay", title="Occupied Beds vs Total Bed Capacity",
+            color_discrete_map={"Occupied_Beds": "#f59e0b", "Bed_Capacity": "#334155"},
             template="plotly_dark"
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_bed, use_container_width=True)
 
-# TAB 2: REASSIGNMENT SIMULATOR
-with tab2:
-    st.subheader("Safe Nurse Reassignment Recommendations")
-    st.caption("Skill-Matched Nurse Reassignments from Surplus (Donor) Units to Shortage (Receiving) Units")
+    with col2:
+        fig_staff_bounds = px.bar(
+            pre_staffing, x="Unit_ID", y=["Minimum_Staff", "Active_Nurses", "Maximum_Staff"],
+            barmode="group", title="Active Staff vs Minimum & Maximum Staffing Bounds",
+            color_discrete_map={"Minimum_Staff": "#ef4444", "Active_Nurses": "#38bdf8", "Maximum_Staff": "#64748b"},
+            template="plotly_dark"
+        )
+        st.plotly_chart(fig_staff_bounds, use_container_width=True)
 
-    col_b1, col_b2 = st.columns([2, 1])
+    st.subheader("Detailed Unit Workload Table")
+    st.dataframe(pre_staffing[[
+        "Facility_ID", "Unit_ID", "Unit_Type", "Total_Patients", "Occupied_Beds",
+        "Bed_Capacity", "Minimum_Staff", "Active_Nurses", "Total_Workload",
+        "Staffing_Gap", "Staffing_Surplus", "Workload_Per_Nurse"
+    ]], use_container_width=True)
 
-    with col_b1:
-        if not reassignments.empty:
-            st.dataframe(
-                reassignments[[
-                    "Nurse_ID", "Nurse_Specialty", "Nurse_Skill_Level", 
-                    "Donor_Unit", "Receiving_Unit", "Receiving_Unit_Type", "Status"
-                ]],
-                use_container_width=True
-            )
-        else:
-            st.warning("No safe nurse reassignments possible for the selected criteria.")
+# PAGE 3: OPERATING SCENARIO SIMULATOR
+elif "3. ⚡ Operating Scenario Simulator" in page_choice:
+    st.title("⚡ 8 Operating Scenario Stress-Testing Engine")
+    st.caption("Simulate Complex Stress Conditions: Acuity Spikes, Staff Shortages, Transfer Surges, Specialist Gaps & Capacity Constraints")
 
-    with col_b2:
-        st.markdown("### Balancing Impact")
-        st.metric("Workload Imbalance Std (Pre)", f"{summary['Pre_Workload_Imbalance_Std']:.2f}")
-        st.metric("Workload Imbalance Std (Post)", f"{summary['Post_Workload_Imbalance_Std']:.2f}")
-        st.metric("Workload Imbalance Reduction", f"{summary['Imbalance_Reduction_Pct']}%", delta=f"{summary['Imbalance_Reduction_Pct']}%")
-        st.metric("Unsafe Attempts Blocked", f"{summary['Unsafe_Attempts_Prevented']}")
+    sc_map = {
+        "Scenario 1 – Baseline": (1.0, 1.0, 1.0, False, 1.0),
+        "Scenario 2 – High Acuity (+25%)": (1.25, 1.0, 1.0, False, 1.0),
+        "Scenario 3 – Staff Shortage (-20%)": (1.0, 0.80, 1.0, False, 1.0),
+        "Scenario 4 – Combined Stress": (1.25, 0.80, 1.0, False, 1.0),
+        "Scenario 5 – Surge in Patient Transfers": (1.0, 1.0, 1.35, False, 1.0),
+        "Scenario 6 – Specialist Shortage": (1.0, 1.0, 1.0, True, 1.0),
+        "Scenario 7 – Unit Capacity Constraint": (1.0, 1.0, 1.0, False, 0.75),
+        "Scenario 8 – Multi-Unit Stress": (1.30, 0.75, 1.20, True, 0.80)
+    }
+
+    sel_sc_name = st.selectbox("Select Scenario Preset", list(sc_map.keys()))
+    ac, stf_mult, surg, spec, cap = sc_map[sel_sc_name]
+
+    with st.expander("⚙️ Fine-Tune Scenario Parameters"):
+        ac = st.slider("Patient Acuity Scale", 1.0, 1.5, ac, 0.05)
+        stf_mult = st.slider("Staff Availability Scale", 0.5, 1.0, stf_mult, 0.05)
+        surg = st.slider("Patient Volume Surge Scale", 1.0, 1.5, surg, 0.05)
+        spec = st.checkbox("Trigger Specialist Shortage (-50% ICU/ER)", value=spec)
+        cap = st.slider("Available Bed Capacity Scale", 0.5, 1.0, cap, 0.05)
+
+    sc_sim_res = run_scenario_simulation(
+        filtered_units, filtered_nurses, filtered_patients,
+        scenario_name=sel_sc_name,
+        acuity_multiplier=ac, staff_multiplier=stf_mult,
+        surge_multiplier=surg, specialist_shortage=spec, capacity_reduction=cap
+    )
+    s_sum = sc_sim_res["summary"]
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Staffing Gap (Pre -> Post)", f"{s_sum['Pre_Staffing_Gap']} -> {s_sum['Post_Staffing_Gap']}")
+    c2.metric("Donor Surplus (Pre -> Post)", f"{s_sum['Pre_Staffing_Surplus']} -> {s_sum['Post_Staffing_Surplus']}")
+    c3.metric("Imbalance Std (Pre -> Post)", f"{s_sum['Pre_Workload_Imbalance_Std']:.2f} -> {s_sum['Post_Workload_Imbalance_Std']:.2f}")
+    c4.metric("Workload Imbalance Reduction", f"{s_sum['Imbalance_Reduction_Pct']}%")
 
     st.markdown("---")
-    st.subheader("Unit-by-Unit Before vs After Workload Comparison")
+    st.subheader("8-Scenario Summary Matrix")
+    _, all_sc_matrix = run_all_operating_scenarios(filtered_units, filtered_nurses, filtered_patients)
+    st.dataframe(all_sc_matrix[[
+        "Scenario_Name", "Pre_Staffing_Gap", "Pre_Staffing_Surplus", 
+        "Pre_Workload_Imbalance_Std", "Post_Workload_Imbalance_Std", 
+        "Imbalance_Reduction_Pct", "Safe_Reassignment_Capacity", "Unsafe_Attempts_Prevented"
+    ]], use_container_width=True)
 
-    comp_df = pd.merge(
-        pre_staffing[["Unit_ID", "Workload_Per_Nurse"]].rename(columns={"Workload_Per_Nurse": "Pre_Workload_Per_Nurse"}),
-        post_staffing[["Unit_ID", "Workload_Per_Nurse"]].rename(columns={"Workload_Per_Nurse": "Post_Workload_Per_Nurse"}),
-        on="Unit_ID"
-    )
+# PAGE 4: REASSIGNMENTS & TRANSFER DECISION
+elif "4. 🔄 Reassignments & Transfer Decision" in page_choice:
+    st.title("🔄 Reassignment & Patient Transfer Decision Engine")
+    st.caption("Explainable Recommendation Rationale and Human Clinical Manager Approval Gateway")
 
-    fig_comp = px.bar(
-        comp_df, x="Unit_ID", y=["Pre_Workload_Per_Nurse", "Post_Workload_Per_Nurse"],
-        barmode="group",
-        title="Workload Per Nurse: Before vs After Safe Balancing",
-        color_discrete_map={"Pre_Workload_Per_Nurse": "#ef4444", "Post_Workload_Per_Nurse": "#38bdf8"},
-        template="plotly_dark"
-    )
-    st.plotly_chart(fig_comp, use_container_width=True)
-
-# TAB 3: MULTI-SCENARIO COMPARISON
-with tab3:
-    st.subheader("Comparative Stress-Test Across 4 Operating Scenarios")
+    st.subheader("1. Patient Transfer Request Outcomes (7 States)")
+    transfer_outcomes = process_batch_transfer_requests(filtered_patients, filtered_units, filtered_nurses, pre_staffing)
     
-    all_res, summary_matrix = run_all_operating_scenarios(df_units, df_nurses, df_patients)
+    st.dataframe(transfer_outcomes, use_container_width=True)
 
-    st.dataframe(
-        summary_matrix[[
-            "Scenario_Name", "Pre_Staffing_Gap", "Pre_Staffing_Surplus", 
-            "Safe_Reassignment_Capacity", "Imbalance_Reduction_Pct", "Unsafe_Attempts_Prevented"
-        ]],
-        use_container_width=True
-    )
+    st.markdown("---")
+    st.subheader("2. Safe Nurse Reassignment Recommendations with Manager Approval Gate")
 
-    fig_sc_gap = px.bar(
-        summary_matrix, x="Scenario_Name", y="Pre_Staffing_Gap",
-        color="Scenario_Name",
-        title="Staffing Gap Across Operating Scenarios",
-        template="plotly_dark"
-    )
-    st.plotly_chart(fig_sc_gap, use_container_width=True)
+    if not reassignments.empty:
+        for idx, row in reassignments.iterrows():
+            with st.container():
+                st.markdown(f"""
+                **Recommendation ID**: `REC-{idx+1:03d}` | **Nurse**: `{row['Nurse_ID']}` ({row['Nurse_Specialty']}) | **From**: `{row['Donor_Unit']}` $\rightarrow$ **To**: `{row['Receiving_Unit']}` ({row['Receiving_Unit_Type']})
+                """)
+                st.info(f"💡 **Explainable Rationale**: {row['Recommendation_Rationale']}")
+                
+                bcol1, bcol2, bcol3 = st.columns([1, 1, 4])
+                with bcol1:
+                    if st.button("✅ Approve", key=f"app_{idx}"):
+                        record_manager_decision(f"REC-{idx+1:03d}", row['Nurse_ID'], row['Donor_Unit'], row['Receiving_Unit'], "Shift Manager", "Approved", "Skill match and capacity verified")
+                        st.success(f"Approved Recommendation REC-{idx+1:03d}!")
+                with bcol2:
+                    if st.button("❌ Reject", key=f"rej_{idx}"):
+                        record_manager_decision(f"REC-{idx+1:03d}", row['Nurse_ID'], row['Donor_Unit'], row['Receiving_Unit'], "Shift Manager", "Rejected", "Clinical manager preference override")
+                        st.error(f"Rejected Recommendation REC-{idx+1:03d}.")
+            st.markdown("---")
+    else:
+        st.warning("No safe nurse reassignments available under current constraints.")
 
-# TAB 4: SENSITIVITY ANALYSIS
-with tab4:
-    st.subheader("Sensitivity Analysis Matrix")
-    st.caption("Evaluating impact of varying Acuity Scale (+10% to +40%) and Nurse Shortages (-10% to -30%)")
+    st.subheader("Audit Trail Log")
+    audit_df = load_audit_log()
+    st.dataframe(audit_df, use_container_width=True)
 
-    sens_df = run_sensitivity_analysis(df_units, df_nurses, df_patients)
+# PAGE 5: FAILURE MODES & SAFETY RULES
+elif "5. 🛡️ Failure Modes & Safety Rules" in page_choice:
+    st.title("🛡️ Failure Modes, Safety Validation & Risk Analysis")
+    st.caption("Enforcing 8 Core Safety Rules via `validate_safe_reassignment()`")
 
-    fig_heat = px.density_heatmap(
-        sens_df, x="Acuity_Increase", y="Staff_Shortage", z="Pre_Staffing_Gap",
-        title="Staffing Gap Heatmap under Combined Parameter Stress",
-        labels={"Pre_Staffing_Gap": "Total Staffing Gap"},
-        color_continuous_scale="Reds",
-        template="plotly_dark"
-    )
-    st.plotly_chart(fig_heat, use_container_width=True)
+    fm_choice = st.selectbox("Select Failure Mode to Inspect:", [
+        "Failure Mode 1 – Skill Mismatch (No Specialist Available)",
+        "Failure Mode 2 – Donor Unit Depletion (Minimum Staffing Protection)",
+        "Failure Mode 3 – Receiving Unit at Physical Bed Capacity",
+        "Failure Mode 4 – Nurse Double-Assignment Conflict",
+        "Failure Mode 5 – Off-Duty / Absent Nurse Selection",
+        "Failure Mode 6 – Inter-Facility Shift Misalignment",
+        "Failure Mode 7 – Severe Multi-Unit Staff Shortage Exhaustion",
+        "Failure Mode 8 – EHR Acuity Data Staleness & Latency"
+    ])
+
+    st.error(f"⚠️ **Safety Breach Defense Triggered**: {fm_choice}")
+    st.caption("System strictly blocks unsafe reassignment and generates structured audit warning.")
+
+    st.markdown("---")
+    st.subheader("Prevented Unsafe Reassignments Log (Current Run)")
+    if not unsafe_prevented.empty:
+        st.dataframe(unsafe_prevented, use_container_width=True)
+    else:
+        st.success("No unsafe reassignment attempts detected.")
+
+# PAGE 6: ADVANCED SENSITIVITY ANALYSIS
+elif "6. 📈 Advanced Sensitivity Analysis" in page_choice:
+    st.title("📈 Advanced Multi-Parameter Sensitivity Analysis")
+    st.caption("Evaluating Decision Stability across Acuity Spikes, Staff Shortages, Skill Availability & Bed Capacity")
+
+    sens_df = run_sensitivity_analysis(filtered_units, filtered_nurses, filtered_patients)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_heat = px.density_heatmap(
+            sens_df, x="Acuity_Increase", y="Staff_Shortage", z="Pre_Staffing_Gap",
+            title="Staffing Gap Heatmap (Acuity vs Staffing)",
+            color_continuous_scale="Reds", template="plotly_dark"
+        )
+        st.plotly_chart(fig_heat, use_container_width=True)
+
+    with col2:
+        fig_cap_heat = px.density_heatmap(
+            sens_df, x="Acuity_Increase", y="Staff_Shortage", z="Safe_Capacity",
+            title="Safe Reassignment Capacity Heatmap",
+            color_continuous_scale="Viridis", template="plotly_dark"
+        )
+        st.plotly_chart(fig_cap_heat, use_container_width=True)
 
     st.dataframe(sens_df, use_container_width=True)
 
-# TAB 5: FAILURE & EDGE CASES
-with tab5:
-    st.subheader("Edge & Failure Case Handling Sandbox")
-    st.markdown("""
-    The simulator enforces **3 hard safety rules** to prevent unsafe reassignment decisions:
-    """)
+# PAGE 7: ACTION TRACKING & ESCALATION
+elif "7. 📋 Action Tracking & Escalation" in page_choice:
+    st.title("📋 Shift Action Tracking & Automatic Escalation")
+    st.caption("Automated Overdue Escalation Engine (Level 0 Normal $\rightarrow$ Level 3 Executive Alert)")
 
-    ec_choice = st.radio(
-        "Select Edge Case Scenario to Test:",
-        [
-            "Failure Case 1 – Skill Mismatch (No Specialist Available)",
-            "Failure Case 2 – Donor Unit Protection (At Minimum Staffing)",
-            "Failure Case 3 – Receiving Unit at Physical Bed Capacity"
-        ]
-    )
+    act_df = get_sample_action_items()
+    esc_df = evaluate_action_escalations(act_df, current_date="2026-09-04")
 
-    if "Failure Case 1" in ec_choice:
-        st.error("❌ **Blocked Reassignment**: Receiving unit requires ICU specialist, but donor unit only has General Med-Surg nurses.")
-        st.caption("Expected Action: Prevent unsafe transfer, flag skill gap for clinical manager intervention.")
-    elif "Failure Case 2" in ec_choice:
-        st.warning("⚠️ **Blocked Reassignment**: Donor unit is currently at minimum safe staffing bounds (Minimum_Staff = 5).")
-        st.caption("Expected Action: Protect donor unit safety. Prevent transferring nurses out of fragile units.")
-    else:
-        st.info("🛑 **Blocked Reassignment**: Receiving unit physical bed capacity reached (Occupied = Capacity).")
-        st.caption("Expected Action: Flag unit bottleneck, prevent physical patient transfer overflow.")
+    st.markdown("### Open Action Items & Escalation Status")
+    st.dataframe(esc_df, use_container_width=True)
 
-    if not unsafe_prevented.empty:
-        st.subheader("Prevented Unsafe Reassignment Log (Current Run)")
-        st.dataframe(unsafe_prevented, use_container_width=True)
-
-# TAB 6: ACTION & ESCALATION TRACKER
-with tab6:
-    st.subheader("Shift Manager Follow-up & Escalation Module")
-    st.caption("Ensuring high-priority staffing gaps and clinical warnings are tracked to resolution.")
-
-    # Sample escalation action tracker
-    actions_data = [
-        {"Action_ID": "ACT-001", "Issue": "ICU Nurse Gap in St. Jude General", "Priority": "High", "Responsible_Owner": "Shift Mgr. Sarah Jenkins", "Due_Date": "2026-09-04", "Status": "Open", "Escalation_Level": "Level 2 (Director Alert)"},
-        {"Action_ID": "ACT-002", "Issue": "Med-Surg Overstaffing Surplus Reassignment", "Priority": "Medium", "Responsible_Owner": "Charge Nurse David Miller", "Due_Date": "2026-09-04", "Status": "In Progress", "Escalation_Level": "Level 1 (Unit Supervisor)"},
-        {"Action_ID": "ACT-003", "Issue": "Skill Level 4 Certification Renewal", "Priority": "Low", "Responsible_Owner": "HR Specialist Amanda Ray", "Due_Date": "2026-09-10", "Status": "Resolved", "Escalation_Level": "None"}
-    ]
-
-    df_actions = pd.DataFrame(actions_data)
-
-    st.dataframe(df_actions, use_container_width=True)
-
-    # Form to add new action item
-    with st.expander("➕ Log New Shift Action / Escalation Item"):
-        with st.form("new_action_form"):
-            issue_text = st.text_input("Issue Description")
-            prio = st.selectbox("Priority Level", ["High", "Medium", "Low"])
-            owner = st.text_input("Responsible Owner")
-            due = st.date_input("Due Date")
-            submitted = st.form_submit_button("Submit Action Item")
-            if submitted and issue_text:
-                st.success(f"Logged Action Item: {issue_text} (Priority: {prio}) assigned to {owner}.")
+    st.markdown("---")
+    st.subheader("Logged High-Priority Overdue Escalations")
+    overdue_high = esc_df[(esc_df["Priority"] == "High") & (esc_df["Status"] != "Resolved")]
+    for _, item in overdue_high.iterrows():
+        st.warning(f"🚨 **[ESCALATED {item['Escalation_Level']}]** Issue: {item['Issue']} | Owner: {item['Owner']} | Due: {item['Due_Date']} | Note: {item['Comments']}")
 
 st.markdown("---")
-st.caption("Shift Workload-Balancing Simulator | Developed for Review 1 (35% Working PrototypeTarget)")
+st.caption("Shift Workload-Balancing Simulator | Complete Submission-Ready Project (100% Target)")

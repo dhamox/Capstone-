@@ -1,10 +1,10 @@
-# Field Workflow Map - Hospital Workload Balancing & Patient Transfer
+# Operational Field Workflow Map - Hospital Workload Balancing
 
-This document outlines the operational field workflow mapping patient acuity collection, workload calculation, automated safety checks, manager review, and outcome monitoring.
+This document details the step-by-step operational field workflow mapping patient transfer requests, acuity collection, workload calculation, safety validation, human clinical manager approval, monitoring, and escalation.
 
 ---
 
-## Operational Workflow Diagram
+## 1. Field Operational Workflow Diagram
 
 ```
                  [ Patient Transfer / Shift Change Request ]
@@ -26,7 +26,7 @@ This document outlines the operational field workflow mapping patient acuity col
                     (Active Staff vs Target Staff)
                                     │
                                     ▼
-                   [ Check Nurse Skill Match Rules ]
+                   [ Check Nurse Skill Mix Rules ]
                (Specialty, Skill Level 1-4, Experience)
                                     │
                                     ▼
@@ -35,6 +35,10 @@ This document outlines the operational field workflow mapping patient acuity col
                                     ▼
                   [ Run Workload Balancing Simulator ]
             (Generate Safe Skill-Matched Recommendations)
+                                    │
+                                    ▼
+                   [ Run Safety Rule Validation ]
+             (validate_safe_reassignment - 8 Rules)
                                     │
                                     ▼
                [ Generate Safe Recommendation Report ]
@@ -50,28 +54,33 @@ This document outlines the operational field workflow mapping patient acuity col
             [ Approved ]                    [ Rejected ]
                   │                               │
                   ▼                               ▼
-       [ Execute Transfer / ]            [ Log Escalation / ]
-       [ Reassign Nurse    ]            [ Seek Alternative ]
+       [ Execute Transfer / ]            [ Log Audit Reason / ]
+       [ Reassign Nurse    ]            [ Seek Alternative   ]
                   │                               │
                   └───────────────┬───────────────┘
                                   ▼
                     [ Monitor Patient Outcome & ]
                     [ Post-Balance Workload    ]
+                                  │
+                                  ▼
+                    [ Action Item & Overdue Log ]
+                     (Auto-Escalation L0 -> L3)
 ```
 
 ---
 
-## Step-by-Step Step Breakdown
+## 2. Phase-by-Phase Process Description
 
-1. **Patient Transfer Request**: A facility or unit requests patient admission or inter-unit transfer.
-2. **Collect Patient Acuity**: System retrieves patient acuity level (Low = 1.0, Medium = 1.25, High = 1.5, Critical = 2.0) and required nursing hours.
-3. **Calculate Nursing Workload**: Total unit workload score is updated.
-4. **Check Unit Capacity**: Verifies receiving unit has available beds (`Occupied_Beds < Bed_Capacity`).
-5. **Check Staffing Availability**: Calculates active nurses vs target nurses.
-6. **Check Nurse Skill Match**: Evaluates candidate nurse specialties against receiving unit requirements.
-7. **Identify Gaps & Surpluses**: Categorizes units as Donor (Surplus) or Receiving (Gap).
-8. **Run Balancing Simulator**: Evaluates candidate pairs and computes optimal safe reassignments.
-9. **Generate Safe Recommendation**: Outputs structured reassignment plan.
-10. **Manager Review & Clinical Approval**: Shift manager verifies clinical suitability. **(Human-in-the-Loop Gateway)**.
-11. **Transfer / Reassignment Execution**: Approved nurse reassignment or patient transfer takes place.
-12. **Monitor Outcome**: System tracks post-balancing workload per nurse and unit stability.
+1. **Transfer Request**: Initiated by unit charge nurse or transfer center.
+2. **Acuity Assessment**: Patient acuity classified (Low=1.0, Medium=1.25, High=1.5, Critical=2.0).
+3. **Workload Computation**: Unit workload score updated based on active census.
+4. **Capacity Validation**: Physical bed availability verified (`Occupied < Capacity`).
+5. **Staffing Check**: Active staff compared against target staffing bounds.
+6. **Skill-Mix Evaluation**: Nurse specialty matched against unit requirements.
+7. **Simulation Execution**: Candidate donor-receiving unit pairs evaluated.
+8. **Safety Validation**: `validate_safe_reassignment()` verifies 8 hard safety rules.
+9. **Recommendation Generation**: System outputs explainable recommendation rationale.
+10. **Human Clinical Manager Gate**: Shift manager approves/rejects recommendation (**Human-in-the-Loop Gateway**).
+11. **Audit Logging**: Manager decision recorded in `data/audit_log.csv`.
+12. **Execution & Monitoring**: Post-balancing workload per nurse monitored.
+13. **Auto-Escalation**: Unresolved overdue action items trigger auto-escalation (Level 0 to Level 3).
