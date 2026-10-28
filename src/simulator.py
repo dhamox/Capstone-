@@ -1,3 +1,27 @@
+"""
+Simulation and Multi-Scenario Analysis Engine
+=============================================
+Project: Shift Workload-Balancing Simulator for Hospital Patient Transfers
+Author: Hospital Operations Research & AI Engineering Team
+Version: 3.0.0 (Review 3 Final Release)
+
+Description:
+    Core simulation engine orchestrating 8 operational hospital stress scenarios.
+    Computes pre- and post-balancing workload distributions, safe reassignment
+    capacities, and statistical workload imbalance reductions without compromising
+    donor unit minimum staffing or physical bed capacity bounds.
+
+Operating Scenarios:
+    1. Scenario 1 – Baseline: Normal patient acuity (1.0x) and normal staffing (1.0x).
+    2. Scenario 2 – High Acuity: Acuity scaled by +25% (1.25x).
+    3. Scenario 3 – Staff Shortage: Nurse availability reduced by 20% (0.80x).
+    4. Scenario 4 – Combined Stress: +25% Acuity and -20% Staffing.
+    5. Scenario 5 – Surge in Patient Transfers: Inbound patient volume +35% (1.35x).
+    6. Scenario 6 – Specialist Shortage: -50% critical care (ICU / Emergency) nurses.
+    7. Scenario 7 – Unit Capacity Constraint: Physical bed capacity reduced by 25% (0.75x).
+    8. Scenario 8 – Multi-Unit Stress: Combined multi-parameter network saturation.
+"""
+
 import os
 import sys
 import pandas as pd
@@ -10,22 +34,52 @@ from src.workload import calculate_unit_workload, calculate_workload_imbalance_m
 from src.staffing import calculate_unit_staffing
 from src.skill_matching import evaluate_reassignment_candidates, validate_safe_reassignment
 
+
 def run_scenario_simulation(
-    df_units,
-    df_nurses,
-    df_patients,
-    scenario_name="Baseline",
-    acuity_multiplier=1.0,
-    staff_multiplier=1.0,
-    surge_multiplier=1.0,
-    specialist_shortage=False,
-    capacity_reduction=1.0
-):
+    df_units: pd.DataFrame,
+    df_nurses: pd.DataFrame,
+    df_patients: pd.DataFrame,
+    scenario_name: str = "Baseline",
+    acuity_multiplier: float = 1.0,
+    staff_multiplier: float = 1.0,
+    surge_multiplier: float = 1.0,
+    specialist_shortage: bool = False,
+    capacity_reduction: float = 1.0
+) -> dict:
     """
-    Executes a workload balancing scenario simulation.
-    
-    Supports 8 operating scenarios with customizable parameters.
+    Executes a high-fidelity workload balancing scenario simulation.
+
+    Parameters:
+    -----------
+    df_units : pd.DataFrame
+        Hospital units roster table.
+    df_nurses : pd.DataFrame
+        Nurse roster table.
+    df_patients : pd.DataFrame
+        Patient records table.
+    scenario_name : str, default='Baseline'
+        Descriptive label for the operating scenario.
+    acuity_multiplier : float, default=1.0
+        Multiplier scaling patient care hours (e.g. 1.25 = +25% acuity).
+    staff_multiplier : float, default=1.0
+        Multiplier scaling available nurse headcount (e.g. 0.80 = 20% shortage).
+    surge_multiplier : float, default=1.0
+        Multiplier scaling patient census volume (e.g. 1.35 = 35% surge).
+    specialist_shortage : bool, default=False
+        If True, simulates -50% loss of ICU and Emergency specialist nurses.
+    capacity_reduction : float, default=1.0
+        Multiplier scaling physical bed capacity (e.g. 0.75 = 25% bed reduction).
+
+    Returns:
+    --------
+    dict
+        - 'summary': High-level scenario performance metrics dictionary
+        - 'pre_staffing': DataFrame of unit metrics before balancing
+        - 'post_staffing': DataFrame of unit metrics after balancing
+        - 'reassignments': DataFrame of safe recommendations with explainable rationale
+        - 'unsafe_prevented': DataFrame of blocked unsafe reassignment attempts
     """
+
     units = df_units.copy()
     nurses = df_nurses.copy()
     patients = df_patients.copy()

@@ -1,21 +1,57 @@
+"""
+Synthetic Healthcare Dataset Generator Module
+==============================================
+Project: Shift Workload-Balancing Simulator for Hospital Patient Transfers
+Author: Hospital Operations Research & AI Engineering Team
+Version: 3.0.0 (Review 3 Final Release)
+
+Description:
+    Generates realistic, statistically controlled synthetic hospital data representing
+    a multi-facility hospital network (~5,200 patient records across 3 facilities and
+    15 specialized units).
+
+Flaw Injection Mechanics:
+    To simulate real-world EHR and roster data quality challenges, the generator
+    intentionally injects bounded anomalies:
+    1. Missing Data (~3% missing acuity, nursing hours, and nurse specialties).
+    2. Duplication (~1.5% duplicate patient census records and nurse rosters).
+    3. Dirty Data Types (Float hours formatted as strings like "12.0 hrs").
+    4. Categorical Discrepancies (Mixed casing like 'icu', 'MedSurg', 'night_shift').
+    5. Physiological Outliers (Ages = -5, Acuity = 'Ultra-Critical', Hours = 99.0 hrs).
+"""
+
 import os
 import random
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
+
+def generate_synthetic_data(output_dir: str = "data/raw", num_patients: int = 5200, seed: int = 42):
     """
-    Generates synthetic dataset for hospital patient transfer workload simulator.
-    Intentionally introduces real-world data quality issues (missing values, duplicates, 
-    dirty types, inconsistent categories, extreme outliers).
+    Generates synthetic hospital units, nurse rosters, and patient records with
+    reproducible random seed initialization and bounded flaw injection.
+
+    Parameters:
+    -----------
+    output_dir : str, default='data/raw'
+        Directory where raw CSV files ('units_raw.csv', 'nurses_raw.csv', 'patients_raw.csv') are saved.
+    num_patients : int, default=5200
+        Target volume of synthetic patient records to generate.
+    seed : int, default=42
+        Pseudorandom generator seed for reproducible experiments.
+
+    Returns:
+    --------
+    tuple of (pd.DataFrame, pd.DataFrame, pd.DataFrame)
+        Raw units, nurses, and patients DataFrames.
     """
     random.seed(seed)
     np.random.seed(seed)
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # 1. Units Table Generation
+    # 1. Units Table Generation across 3 facilities
     facilities = [
         {"id": "F01", "name": "St. Jude Memorial Hospital"},
         {"id": "F02", "name": "Metro Health Medical Center"},
@@ -33,7 +69,7 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
             occupied = random.randint(int(bed_cap * 0.5), min(bed_cap, int(bed_cap * 0.95)))
             min_staff = random.randint(6, 12)
             max_staff = min_staff + random.randint(8, 15)
-            # Intentionally create some understaffed and overstaffed units
+            # Create natural variation: some understaffed and overstaffed units
             current_staff = random.randint(max(3, min_staff - 4), max_staff + 2)
             
             units.append({
@@ -51,9 +87,8 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
 
     df_units = pd.DataFrame(units)
 
-    # Introduce minor category inconsistencies in Units
+    # Ingest subtle category inconsistencies in raw Units dataset
     df_units_raw = df_units.copy()
-    # Inconsistent category in 2 rows
     df_units_raw.loc[2, "Unit_Type"] = "icu"
     df_units_raw.loc[7, "Unit_Type"] = "MedSurg"
 
@@ -61,14 +96,6 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
     print(f"Generated raw units dataset: {len(df_units_raw)} records.")
 
     # 2. Nurses Table Generation
-    skills_map = {
-        "ICU": "ICU",
-        "Emergency": "Emergency",
-        "Med-Surg": "Med-Surg",
-        "Pediatrics": "Pediatrics",
-        "Oncology": "Oncology"
-    }
-
     shifts = ["Day", "Night", "Evening"]
     experience_levels = ["Junior", "Mid", "Senior", "Specialist"]
     
@@ -76,17 +103,17 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
     nurse_id_counter = 1
     
     for idx, u in df_units.iterrows():
-        # Generate nurses per unit
-        n_count = u["Current_Staff"] + random.randint(2, 6) # includes off-shift nurses
+        # Generate nurses per unit (shift active + rotational off-duty buffer)
+        n_count = u["Current_Staff"] + random.randint(2, 6)
         for _ in range(n_count):
             nid = f"N{nurse_id_counter:04d}"
-            nurse_skill_level = random.choice([1, 2, 3, 4]) # 1: Basic, 2: Intermediate, 3: Advanced, 4: Expert
+            nurse_skill_level = random.choice([1, 2, 3, 4])  # 1: Basic, 2: Intermediate, 3: Advanced, 4: Expert
             exp = experience_levels[nurse_skill_level - 1]
             shift = random.choice(shifts)
             
-            # Specialty matching unit or adjacent
+            # Specialty matching primary unit or adjacent secondary credential
             specialty = u["Unit_Type"] if random.random() > 0.15 else random.choice(unit_types)
-            available_hrs = random.choice([8.0, 12.0, 12.0, 0.0]) # 0 if off/sick
+            available_hrs = random.choice([8.0, 12.0, 12.0, 0.0])  # 0.0 indicates off/sick
             status = "Available" if available_hrs > 0 else "Off Duty"
 
             nurses.append({
@@ -104,10 +131,10 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
 
     df_nurses = pd.DataFrame(nurses)
 
-    # Ingest data issues into Nurses raw dataset
+    # Ingest synthetic flaws into Nurses raw dataset
     df_nurses_raw = df_nurses.copy()
     
-    # Missing values
+    # Missing values (~3%)
     missing_indices = np.random.choice(df_nurses_raw.index, size=int(len(df_nurses_raw) * 0.03), replace=False)
     df_nurses_raw.loc[missing_indices, "Specialty"] = np.nan
 
@@ -117,11 +144,10 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
     for i in dirty_hrs_indices:
         df_nurses_raw.loc[i, "Available_Hours"] = f"{df_nurses_raw.loc[i, 'Available_Hours']} hrs"
 
-
     # Category inconsistencies
     df_nurses_raw["Shift"] = df_nurses_raw["Shift"].replace({"Day": "Day", "Night": "night_shift", "Evening": "EVENING"})
     
-    # Duplicate records (1.5%)
+    # Duplicate records (~1.5%)
     dups = df_nurses_raw.sample(frac=0.015, random_state=seed)
     df_nurses_raw = pd.concat([df_nurses_raw, dups], ignore_index=True)
 
@@ -130,7 +156,6 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
 
     # 3. Patient Table Generation (~5,200 records)
     acuity_levels = ["Low", "Medium", "High", "Critical"]
-    acuity_weights = {"Low": 1.0, "Medium": 1.25, "High": 1.5, "Critical": 2.0}
     diagnoses = {
         "ICU": ["Acute Respiratory Distress", "Septic Shock", "Multi-organ Dysfunction", "Post-Cardiac Arrest"],
         "Emergency": ["Polytrauma", "Acute Myocardial Infarction", "Stroke", "Severe Abdominal Pain"],
@@ -143,8 +168,6 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
 
     patients = []
     base_date = datetime(2026, 8, 1)
-
-    unit_list = df_units["Unit_ID"].tolist()
 
     for pid_idx in range(1, num_patients + 1):
         pid = f"P{pid_idx:05d}"
@@ -159,14 +182,14 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
 
         diag = random.choice(diagnoses[unit_type])
         
-        # Base hours depend on acuity
+        # Base hours depend on clinical acuity tier
         if acuity == "Low":
             req_hrs = round(random.uniform(1.5, 3.5), 1)
         elif acuity == "Medium":
             req_hrs = round(random.uniform(3.5, 5.5), 1)
         elif acuity == "High":
             req_hrs = round(random.uniform(5.5, 8.5), 1)
-        else: # Critical
+        else:  # Critical
             req_hrs = round(random.uniform(8.5, 14.0), 1)
 
         req_skill = unit_type if random.random() > 0.1 else random.choice(unit_types)
@@ -225,6 +248,7 @@ def generate_synthetic_data(output_dir="data/raw", num_patients=5200, seed=42):
     print(f"Generated raw patients dataset: {len(df_patients_raw)} records.")
 
     return df_units_raw, df_nurses_raw, df_patients_raw
+
 
 if __name__ == "__main__":
     generate_synthetic_data()
